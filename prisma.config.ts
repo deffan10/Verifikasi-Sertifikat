@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({
@@ -6,7 +7,6 @@ export default defineConfig({
     path: "./prisma/migrations",
   },
   datasource: {
-    // Use process.env directly so prisma generate works without DATABASE_URL
     url: process.env.DATABASE_URL || "mysql://root:root@localhost:3306/placeholder",
   },
 });
