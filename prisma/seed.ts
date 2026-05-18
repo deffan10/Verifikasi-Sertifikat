@@ -39,6 +39,25 @@ async function main() {
   });
   console.log(`Document type created: ${sertifikat.name}`);
 
+  const sertifikatLtc = await prisma.documentType.upsert({
+    where: { slug: "sertifikat-ltc" },
+    update: {},
+    create: {
+      name: "Sertifikat LTC",
+      slug: "sertifikat-ltc",
+      prefix: "LTC",
+      fields: {
+        create: [
+          { fieldName: "nama_peserta", fieldLabel: "Nama Peserta", fieldType: "text", isRequired: true, sortOrder: 0 },
+          { fieldName: "jenis_ujian", fieldLabel: "Jenis Ujian", fieldType: "text", isRequired: true, sortOrder: 1 },
+          { fieldName: "nilai", fieldLabel: "Nilai", fieldType: "number", isRequired: true, sortOrder: 2 },
+          { fieldName: "tanggal_sertifikat", fieldLabel: "Tanggal Sertifikat", fieldType: "text", isRequired: true, sortOrder: 3 },
+        ],
+      },
+    },
+  });
+  console.log(`Document type created: ${sertifikatLtc.name}`);
+
   const ijazah = await prisma.documentType.upsert({
     where: { slug: "ijazah" },
     update: {},

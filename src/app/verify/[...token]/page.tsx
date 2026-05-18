@@ -31,7 +31,8 @@ interface VerificationResult {
 
 export default function VerifyPage() {
   const params = useParams();
-  const token = params.token as string;
+  const tokenParts = params.token as string[];
+  const token = Array.isArray(tokenParts) ? tokenParts.join("/") : String(tokenParts);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);

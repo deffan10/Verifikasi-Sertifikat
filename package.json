@@ -9,6 +9,8 @@
     "lint": "eslint",
     "db:migrate": "npx prisma migrate deploy",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:wpltc": "npx tsx prisma/seed-wpltc.ts",
+    "db:generate-qr": "npx tsx prisma/generate-qr.ts",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
     "deploy": "npm run build && pm2 start ecosystem.config.js --env production",

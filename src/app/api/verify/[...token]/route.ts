@@ -4,7 +4,7 @@ import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ token: string }> }
+  { params }: { params: Promise<{ token: string[] }> }
 ) {
   try {
     // Rate limiting
@@ -18,12 +18,19 @@ export async function GET(
     }
 
     const { token } = await params;
+    // Join catch-all segments with "/" to reconstruct original token
+    const fullToken = token.map(decodeURIComponent).join("/");
+
+    // Also try the dash variant (QR codes use dashes instead of slashes)
+    const dashVariant = fullToken.replace(/\//g, "-");
 
     const document = await prisma.document.findFirst({
       where: {
         OR: [
-          { verificationToken: token },
-          { documentNumber: token },
+          { verificationToken: fullToken },
+          { documentNumber: fullToken },
+          { verificationToken: dashVariant },
+          { documentNumber: dashVariant },
         ],
         isActive: true,
       },
