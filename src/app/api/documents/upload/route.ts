@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
             const value = col ? convertCellValue(row[col]) : "";
             return { fieldId: field.id, value };
           })
-          .filter((v) => v.value);
+          .filter((v: { fieldId: number; value: string }) => v.value);
 
         await prisma.document.create({
           data: {
