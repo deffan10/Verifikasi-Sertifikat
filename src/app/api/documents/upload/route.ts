@@ -14,22 +14,29 @@ interface UploadRow {
 /**
  * Convert Excel date serial number to "DD MMMM YYYY" Indonesian format.
  * If the value is already a string, return as-is.
+ * Excel serial: 1 = Jan 1 1900, 45881 = Aug 12 2025
  */
 function convertCellValue(raw: string | number | undefined): string {
   if (raw === undefined || raw === null) return "";
   if (typeof raw === "string") return raw.trim();
-  // Check if it looks like an Excel date serial (number > 25000 and < 60000)
-  if (typeof raw === "number" && raw > 25000 && raw < 100000) {
-    const utcDays = Math.floor(raw - 25569);
-    const date = new Date(utcDays * 86400 * 1000);
-    const year = date.getUTCFullYear();
-    if (year >= 2000 && year <= 2100) {
-      const months = [
-        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-      ];
-      return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${year}`;
+  if (typeof raw === "number") {
+    // Excel date serials are typically between 1 and 2958465 (year 9999)
+    // Common range for modern dates: 36526 (2000) to 73050 (2100)
+    if (raw >= 36526 && raw <= 73050) {
+      // This is very likely an Excel date serial
+      const utcDays = Math.floor(raw - 25569);
+      const date = new Date(utcDays * 86400 * 1000);
+      const year = date.getUTCFullYear();
+      if (year >= 2000 && year <= 2100) {
+        const months = [
+          "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+          "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
+        return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${year}`;
+      }
     }
+    // Regular number (like score/nilai), return as string
+    return String(raw);
   }
   return String(raw).trim();
 }

@@ -78,6 +78,7 @@ export default function BulkUploadPage() {
       const data = await res.json();
       if (res.ok) {
         setResult(data);
+        alert(`Upload Selesai! ${data.success} dokumen berhasil diproses.`);
       } else {
         alert(data.error || "Upload gagal");
       }
@@ -155,13 +156,13 @@ export default function BulkUploadPage() {
                 <p className="text-sm font-medium">{file.name}</p>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Klik untuk upload file .xlsx atau .csv
+                  Klik untuk upload file .xlsx
                 </p>
               )}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".xlsx"
                 onChange={handleFileChange}
                 className="hidden"
               />
