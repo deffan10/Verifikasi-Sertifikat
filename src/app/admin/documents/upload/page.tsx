@@ -96,6 +96,14 @@ export default function BulkUploadPage() {
           <p className="text-muted-foreground">
             Upload dokumen secara massal dari file Excel atau CSV
           </p>
+          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+            <p className="text-xs text-amber-800 dark:text-amber-200 font-medium">
+              Tips format Excel: Kolom tanggal harus berformat <strong>Text</strong> (bukan Date).
+              Tulis langsung seperti &quot;12 Agustus 2025&quot;. Jika kolom berformat Date, sistem akan otomatis konversi.
+            </p>
+          </div>
+        </div>
+          </p>
         </div>
 
         {/* Step 1: Select Type */}

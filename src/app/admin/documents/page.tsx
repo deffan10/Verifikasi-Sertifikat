@@ -206,7 +206,7 @@ export default function DocumentsPage() {
                     <TableHead>Jenis</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Tgl Input</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
