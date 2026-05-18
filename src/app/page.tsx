@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Shield, QrCode } from "lucide-react";
+import { Search, Shield, QrCode, LogIn } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function HomePage() {
@@ -37,7 +37,14 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link href="/admin/login">
+              <Button variant="ghost" size="icon" title="Admin Login">
+                <LogIn className="h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -128,9 +135,6 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t mt-16 py-6 text-center text-sm text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} {process.env.NEXT_PUBLIC_INSTITUTION_NAME || "Universitas"}. All rights reserved.</p>
-        <Link href="/admin/login" className="text-xs text-muted-foreground/50 hover:text-primary mt-2 inline-block">
-          Admin
-        </Link>
       </footer>
     </div>
   );

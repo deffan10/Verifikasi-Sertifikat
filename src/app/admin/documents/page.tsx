@@ -236,31 +236,66 @@ export default function DocumentsPage() {
             <DialogHeader>
               <DialogTitle>QR Code - {qrDialog?.documentNumber}</DialogTitle>
             </DialogHeader>
-            <div className="flex flex-col items-center gap-4">
-              {qrDialog?.qrCode && (
-                <img src={qrDialog.qrCode} alt="QR Code" className="w-64 h-64" />
-              )}
-              <p className="text-sm text-muted-foreground font-mono">
-                {qrDialog?.verificationToken}
-              </p>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (qrDialog?.qrCode) {
-                    const a = document.createElement("a");
-                    a.href = qrDialog.qrCode;
-                    a.download = `qr-${qrDialog.documentNumber}.png`;
-                    a.click();
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Download QR
-              </Button>
-            </div>
+            <QrDialogContent doc={qrDialog} />
           </DialogContent>
         </Dialog>
       </div>
     </AdminShell>
+  );
+}
+
+function QrDialogContent({ doc }: { doc: Document | null }) {
+  const [qrSrc, setQrSrc] = useState<string>("");
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!doc) return;
+    if (doc.qrCode) {
+      setQrSrc(doc.qrCode);
+    } else {
+      // Generate QR client-side
+      setGenerating(true);
+      const url = `${window.location.origin}/verify/${doc.verificationToken}`;
+      import("qrcode").then((QRCode) => {
+        QRCode.toDataURL(url, { width: 300, margin: 2 }).then((dataUrl: string) => {
+          setQrSrc(dataUrl);
+          setGenerating(false);
+        });
+      }).catch(() => setGenerating(false));
+    }
+  }, [doc]);
+
+  if (!doc) return null;
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {generating ? (
+        <Loader2 className="h-8 w-8 animate-spin" />
+      ) : qrSrc ? (
+        <img src={qrSrc} alt="QR Code" className="w-64 h-64" />
+      ) : (
+        <p className="text-sm text-muted-foreground">Gagal generate QR</p>
+      )}
+      <p className="text-sm text-muted-foreground font-mono">
+        {doc.verificationToken}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {`${window.location.origin}/verify/${doc.verificationToken}`}
+      </p>
+      {qrSrc && (
+        <Button
+          variant="outline"
+          onClick={() => {
+            const a = document.createElement("a");
+            a.href = qrSrc;
+            a.download = `qr-${doc.documentNumber.replace(/\//g, "-")}.png`;
+            a.click();
+          }}
+        >
+          <Download className="h-4 w-4 mr-1" />
+          Download QR
+        </Button>
+      )}
+    </div>
   );
 }

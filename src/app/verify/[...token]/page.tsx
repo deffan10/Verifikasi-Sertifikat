@@ -135,7 +135,9 @@ export default function VerifyPage() {
                     <div className="border-t pt-4 mt-4">
                       <h3 className="font-semibold mb-3">Detail Dokumen</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {result.document.fields.map((field, i) => (
+                        {result.document.fields
+                          .filter((field) => field.value && field.value !== "-")
+                          .map((field, i) => (
                           <div key={i} className="bg-muted/50 rounded-lg p-3">
                             <p className="text-xs text-muted-foreground">{field.label}</p>
                             <p className="font-medium text-sm">{field.value}</p>
