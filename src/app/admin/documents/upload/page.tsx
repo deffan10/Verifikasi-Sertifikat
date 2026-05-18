@@ -103,8 +103,6 @@ export default function BulkUploadPage() {
             </p>
           </div>
         </div>
-          </p>
-        </div>
 
         {/* Step 1: Select Type */}
         <Card>
