@@ -17,6 +17,7 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
+import { LogoImage } from "@/components/logo-image";
 
 interface VerificationResult {
   verified: boolean;
@@ -88,7 +89,7 @@ export default function VerifyPage() {
       <header className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm print:hidden">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
+            <LogoImage />
             <h1 className="text-lg font-bold text-primary">Verifikasi Dokumen</h1>
           </div>
           <ThemeToggle />

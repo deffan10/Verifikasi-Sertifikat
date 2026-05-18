@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Save, Lock, Link2, Image } from "lucide-react";
+import { Loader2, Save, Lock, Link2, Image, Upload } from "lucide-react";
 
 export default function SettingsPage() {
   const [contactUrl, setContactUrl] = useState("");
@@ -16,9 +16,12 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [settingsMsg, setSettingsMsg] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [logoMsg, setLogoMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -39,16 +42,43 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "contact_url", value: contactUrl }),
       });
-      await fetch("/api/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: "logo_url", value: logoUrl }),
-      });
       setSettingsMsg("Pengaturan berhasil disimpan");
     } catch {
       setSettingsMsg("Gagal menyimpan");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    setLogoMsg("");
+
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      const res = await fetch("/api/upload-logo", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setLogoUrl(data.url);
+        setLogoMsg("Logo berhasil diupload");
+      } else {
+        setLogoMsg(data.error || "Gagal upload logo");
+      }
+    } catch {
+      setLogoMsg("Terjadi kesalahan");
+    } finally {
+      setUploadingLogo(false);
+      // Reset input
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -97,38 +127,81 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">Kelola pengaturan aplikasi</p>
         </div>
 
-        {/* Contact & Logo Settings */}
+        {/* Logo Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              Logo
+            </CardTitle>
+            <CardDescription>
+              Upload logo yang tampil di header halaman verifikasi
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {logoUrl && (
+              <div className="flex items-center gap-4">
+                <img
+                  src={logoUrl}
+                  alt="Logo saat ini"
+                  className="h-16 w-auto object-contain border rounded p-1"
+                />
+                <p className="text-xs text-muted-foreground">Logo saat ini</p>
+              </div>
+            )}
+            <div>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingLogo}
+              >
+                {uploadingLogo ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-1" />
+                )}
+                {uploadingLogo ? "Mengupload..." : "Upload Logo Baru"}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                onChange={handleUploadLogo}
+                className="hidden"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Format: PNG, JPG, SVG, WEBP. Maks 2MB.
+              </p>
+            </div>
+            {logoMsg && (
+              <p className={`text-sm ${logoMsg.includes("berhasil") ? "text-green-600" : "text-red-600"}`}>
+                {logoMsg}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Contact URL */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Link2 className="h-4 w-4" />
-              Link & Branding
+              Link Kontak
             </CardTitle>
             <CardDescription>
-              Atur link kontak dan logo yang tampil di halaman verifikasi
+              Link &quot;Hubungi Kami&quot; yang tampil di halaman verifikasi
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Link Hubungi Kami</Label>
+              <Label>URL Hubungi Kami</Label>
               <Input
                 value={contactUrl}
                 onChange={(e) => setContactUrl(e.target.value)}
                 placeholder="Contoh: https://wa.me/628123456789 atau mailto:admin@ltc.com"
               />
               <p className="text-xs text-muted-foreground">
-                Gunakan format wa.me/628xxx untuk WhatsApp atau mailto:email@domain.com untuk email
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label>URL Logo (opsional)</Label>
-              <Input
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="Contoh: https://domain.com/logo.png"
-              />
-              <p className="text-xs text-muted-foreground">
-                URL gambar logo yang akan tampil di header. Kosongkan untuk pakai icon default.
+                Gunakan wa.me/628xxx untuk WhatsApp atau mailto:email@domain.com untuk email
               </p>
             </div>
             {settingsMsg && (
@@ -136,7 +209,7 @@ export default function SettingsPage() {
             )}
             <Button onClick={handleSaveSettings} disabled={savingSettings}>
               {savingSettings ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-              Simpan Pengaturan
+              Simpan
             </Button>
           </CardContent>
         </Card>

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Shield, QrCode, LogIn } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LogoImage } from "@/components/logo-image";
 
 export default function HomePage() {
   const [documentNumber, setDocumentNumber] = useState("");
@@ -26,8 +27,8 @@ export default function HomePage() {
       {/* Header */}
       <header className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
+          <Link href="/" className="flex items-center gap-2">
+            <LogoImage />
             <div>
               <h1 className="text-lg font-bold text-primary">
                 {process.env.NEXT_PUBLIC_APP_NAME || "Verifikasi Dokumen"}
@@ -36,7 +37,7 @@ export default function HomePage() {
                 {process.env.NEXT_PUBLIC_INSTITUTION_NAME || "Sistem Verifikasi"}
               </p>
             </div>
-          </div>
+          </Link>
           <div className="flex items-center gap-1">
             <ThemeToggle />
             <Link href="/admin/login">

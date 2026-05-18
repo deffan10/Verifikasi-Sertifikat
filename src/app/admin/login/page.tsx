@@ -42,7 +42,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -95,7 +95,7 @@ export default function LoginPage() {
           </form>
         </CardContent>
       </Card>
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mt-4">
+      <Link href="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mt-6">
         <ArrowLeft className="h-4 w-4" />
         Kembali ke halaman utama
       </Link>
