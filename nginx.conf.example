@@ -41,7 +41,7 @@ server {
     # Next.js App via PM2 (Port 3000)
     # ==========================================
     location / {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -56,7 +56,7 @@ server {
 
     # Next.js static files (cache)
     location /_next/static/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://127.0.0.1:3001;
         expires 365d;
         access_log off;
         add_header Cache-Control "public, immutable";

@@ -1,23 +1,19 @@
 module.exports = {
   apps: [
     {
-      name: "verifikasi-dokumen",
+      name: "certify-ltc",
       script: "node_modules/.bin/next",
-      args: "start",
-      cwd: "/var/www/verifikasi-dokumen",
-      instances: "max",
-      exec_mode: "cluster",
+      args: "start -p 3001",
+      cwd: "/home/htdocs/certify-ltc",
+      instances: 1,
+      exec_mode: "fork",
       env: {
         NODE_ENV: "production",
-        PORT: 3000,
-      },
-      env_production: {
-        NODE_ENV: "production",
-        PORT: 3000,
+        PORT: 3001,
       },
       // Logging
-      error_file: "/var/log/pm2/verifikasi-error.log",
-      out_file: "/var/log/pm2/verifikasi-out.log",
+      error_file: "/var/log/pm2/certify-ltc-error.log",
+      out_file: "/var/log/pm2/certify-ltc-out.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss Z",
       // Restart policy
       max_restarts: 10,
