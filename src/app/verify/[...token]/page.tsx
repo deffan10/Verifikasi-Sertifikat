@@ -16,6 +16,8 @@ import {
   Copy,
   Loader2,
   ExternalLink,
+  QrCode,
+  Download,
 } from "lucide-react";
 import { LogoImage } from "@/components/logo-image";
 
@@ -39,6 +41,8 @@ export default function VerifyPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [contactUrl, setContactUrl] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const [qrSrc, setQrSrc] = useState("");
 
   useEffect(() => {
     async function verify() {
@@ -71,6 +75,22 @@ export default function VerifyPage() {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShowQr = async () => {
+    if (qrSrc) {
+      setShowQr(!showQr);
+      return;
+    }
+    try {
+      const QRCode = await import("qrcode");
+      const url = window.location.href;
+      const dataUrl = await QRCode.toDataURL(url, { width: 300, margin: 2 });
+      setQrSrc(dataUrl);
+      setShowQr(true);
+    } catch {
+      alert("Gagal generate QR code");
+    }
   };
 
   if (loading) {
@@ -169,7 +189,34 @@ export default function VerifyPage() {
                     <Copy className="h-4 w-4 mr-1" />
                     {copied ? "Tersalin!" : "Salin Link"}
                   </Button>
+                  <Button variant="outline" size="sm" onClick={handleShowQr}>
+                    <QrCode className="h-4 w-4 mr-1" />
+                    QR Code
+                  </Button>
                 </div>
+
+                {/* QR Code Display */}
+                {showQr && qrSrc && (
+                  <div className="flex flex-col items-center gap-2 p-4 bg-white dark:bg-slate-800 rounded-lg border">
+                    <img src={qrSrc} alt="QR Code Verifikasi" className="w-48 h-48" />
+                    <p className="text-xs text-muted-foreground text-center">
+                      Scan QR ini untuk verifikasi dokumen
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const a = document.createElement("a");
+                        a.href = qrSrc;
+                        a.download = `qr-verifikasi-${result.document?.documentNumber?.replace(/\//g, "-")}.png`;
+                        a.click();
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download QR
+                    </Button>
+                  </div>
+                )}
 
                 {contactUrl && (
                   <a href={contactUrl} target="_blank" rel="noopener noreferrer">
