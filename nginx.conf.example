@@ -1,93 +1,47 @@
-# Nginx reverse proxy configuration for Verifikasi Dokumen
-# Place in /etc/nginx/sites-available/verifikasi-dokumen.conf
-# Then symlink: ln -s /etc/nginx/sites-available/verifikasi-dokumen.conf /etc/nginx/sites-enabled/
+# Nginx config for Verifikasi Sertifikat LTC
+# File: /etc/nginx/sites-available/certify
 
-# Rate limiting zone
-limit_req_zone $binary_remote_addr zone=verify_limit:10m rate=10r/s;
-
-upstream verifikasi_app {
-    server 127.0.0.1:3000;
-    keepalive 64;
-}
-
-# HTTP -> HTTPS redirect
-server {
-    listen 80;
-    listen [::]:80;
-    server_name verify.yourdomain.com;
-
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location / {
-        return 301 https://$host$request_uri;
-    }
-}
-
-# HTTPS server
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name verify.yourdomain.com;
+    server_name certify.ltc-jabar.com;
 
-    # SSL certificates (use certbot/letsencrypt)
-    ssl_certificate /etc/letsencrypt/live/verify.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/verify.yourdomain.com/privkey.pem;
+    # SSL Certificate
+    ssl_certificate /home/deffan/SSL/LTC.pem;
+    ssl_certificate_key /home/deffan/SSL/LTCKEY.pem;
 
-    # SSL settings
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_tickets off;
+    # OCSP Stapling & Security
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    resolver 8.8.8.8 8.8.4.4 valid=300s;
+    resolver_timeout 5s;
 
-    # Security headers
+    # Security Headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
 
+    # Logs
+    access_log /var/log/nginx/certify-access.log;
+    error_log /var/log/nginx/certify-error.log;
+
+    # Upload Size
+    client_max_body_size 10M;
+
     # Gzip
     gzip on;
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
-    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss application/atom+xml image/svg+xml;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss image/svg+xml;
 
-    # Rate limiting for verification endpoint
-    location /api/verify/ {
-        limit_req zone=verify_limit burst=20 nodelay;
-        proxy_pass http://verifikasi_app;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # Static files - serve directly
-    location /_next/static/ {
-        alias /var/www/verifikasi-dokumen/.next/static/;
-        expires 365d;
-        access_log off;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /public/ {
-        alias /var/www/verifikasi-dokumen/public/;
-        expires 30d;
-        access_log off;
-    }
-
-    # Main proxy
+    # ==========================================
+    # Next.js App via PM2 (Port 3000)
+    # ==========================================
     location / {
-        proxy_pass http://verifikasi_app;
+        proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -100,16 +54,18 @@ server {
         proxy_send_timeout 60s;
     }
 
-    # Block access to sensitive files
+    # Next.js static files (cache)
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3000;
+        expires 365d;
+        access_log off;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Block sensitive files
     location ~ /\. {
         deny all;
         access_log off;
         log_not_found off;
     }
-
-    # File upload limit
-    client_max_body_size 10M;
-
-    access_log /var/log/nginx/verifikasi-access.log;
-    error_log /var/log/nginx/verifikasi-error.log;
 }
