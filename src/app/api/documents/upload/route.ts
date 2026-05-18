@@ -11,6 +11,29 @@ interface UploadRow {
   [key: string]: string | number | undefined;
 }
 
+/**
+ * Convert Excel date serial number to "DD MMMM YYYY" Indonesian format.
+ * If the value is already a string, return as-is.
+ */
+function convertCellValue(raw: string | number | undefined): string {
+  if (raw === undefined || raw === null) return "";
+  if (typeof raw === "string") return raw.trim();
+  // Check if it looks like an Excel date serial (number > 25000 and < 60000)
+  if (typeof raw === "number" && raw > 25000 && raw < 100000) {
+    const utcDays = Math.floor(raw - 25569);
+    const date = new Date(utcDays * 86400 * 1000);
+    const year = date.getUTCFullYear();
+    if (year >= 2000 && year <= 2100) {
+      const months = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+      ];
+      return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${year}`;
+    }
+  }
+  return String(raw).trim();
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -40,12 +63,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Document type not found" }, { status: 404 });
     }
 
-    // Parse file
+    // Parse file - use raw:true to get serial numbers for dates
     const buffer = Buffer.from(await file.arrayBuffer());
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const rows: UploadRow[] = XLSX.utils.sheet_to_json(sheet);
+    const rows: UploadRow[] = XLSX.utils.sheet_to_json(sheet, { raw: true });
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "File is empty" }, { status: 400 });
@@ -63,7 +86,7 @@ export async function POST(request: NextRequest) {
       try {
         // Get document number from mapping
         const docNumberCol = columnMapping["documentNumber"];
-        const documentNumber = String(row[docNumberCol] || "").trim();
+        const documentNumber = convertCellValue(row[docNumberCol]);
 
         if (!documentNumber) {
           results.failed++;
@@ -86,7 +109,7 @@ export async function POST(request: NextRequest) {
         let hasError = false;
         for (const field of requiredFields) {
           const col = columnMapping[field.fieldName];
-          const value = col ? String(row[col] || "").trim() : "";
+          const value = col ? convertCellValue(row[col]) : "";
           if (!value) {
             results.failed++;
             results.errors.push({ row: i + 2, reason: `Required field "${field.fieldLabel}" is empty` });
@@ -101,11 +124,11 @@ export async function POST(request: NextRequest) {
         const verificationUrl = getVerificationUrl(verificationToken);
         const qrCode = await generateQRCode(verificationUrl);
 
-        // Create document with values
+        // Create document with values - convert date serials automatically
         const values = docType.fields
           .map((field: { id: number; fieldName: string }) => {
             const col = columnMapping[field.fieldName];
-            const value = col ? String(row[col] || "").trim() : "";
+            const value = col ? convertCellValue(row[col]) : "";
             return { fieldId: field.id, value };
           })
           .filter((v) => v.value);

@@ -6,6 +6,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -20,8 +21,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Loader2, Search, Download, Eye, QrCode, Copy } from "lucide-react";
+import { Plus, Trash2, Loader2, Search, Download, Pencil, QrCode, Copy, Save } from "lucide-react";
+
+interface DocumentValue {
+  field: { id: number; fieldLabel: string; fieldType: string };
+  value: string;
+}
 
 interface Document {
   id: number;
@@ -31,7 +38,7 @@ interface Document {
   isActive: boolean;
   createdAt: string;
   documentType: { name: string };
-  values: { field: { fieldLabel: string }; value: string }[];
+  values: DocumentValue[];
 }
 
 export default function DocumentsPage() {
@@ -39,22 +46,28 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [qrDialog, setQrDialog] = useState<Document | null>(null);
+  const [editDialog, setEditDialog] = useState<Document | null>(null);
+  const [editValues, setEditValues] = useState<Record<number, string>>({});
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     fetchDocuments();
-  }, [page, search]);
+  }, [page, limit, search]);
 
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page), limit: "20" });
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (search) params.set("search", search);
       const res = await fetch(`/api/documents?${params}`);
       const data = await res.json();
       setDocuments(data.documents);
       setTotalPages(data.pagination.totalPages);
+      setTotal(data.pagination.total);
     } catch (error) {
       console.error(error);
     } finally {
@@ -87,13 +100,49 @@ export default function DocumentsPage() {
     navigator.clipboard.writeText(url);
   };
 
+  const openEdit = (doc: Document) => {
+    setEditDialog(doc);
+    const vals: Record<number, string> = {};
+    doc.values.forEach((v) => {
+      vals[v.field.id] = v.value;
+    });
+    setEditValues(vals);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editDialog) return;
+    setEditSaving(true);
+    try {
+      const values = Object.entries(editValues).map(([fieldId, value]) => ({
+        fieldId: parseInt(fieldId),
+        value,
+      }));
+      const res = await fetch(`/api/documents/${editDialog.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ values }),
+      });
+      if (res.ok) {
+        setEditDialog(null);
+        fetchDocuments();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Gagal menyimpan");
+      }
+    } catch {
+      alert("Terjadi kesalahan");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   return (
     <AdminShell>
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-2xl font-bold">Dokumen</h1>
-            <p className="text-muted-foreground">Kelola semua dokumen yang terdaftar</p>
+            <p className="text-muted-foreground">Kelola semua dokumen yang terdaftar ({total} total)</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExport}>
@@ -109,8 +158,8 @@ export default function DocumentsPage() {
           </div>
         </div>
 
-        {/* Search */}
-        <div className="flex gap-2">
+        {/* Search + Per-page selector */}
+        <div className="flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -122,6 +171,24 @@ export default function DocumentsPage() {
               }}
               className="pl-9"
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Tampilkan</span>
+            <select
+              value={limit}
+              onChange={(e) => {
+                setLimit(parseInt(e.target.value));
+                setPage(1);
+              }}
+              className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            >
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+              <option value={500}>500</option>
+            </select>
+            <span className="text-sm text-muted-foreground">per halaman</span>
           </div>
         </div>
 
@@ -164,6 +231,14 @@ export default function DocumentsPage() {
                         {new Date(doc.createdAt).toLocaleDateString("id-ID")}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(doc)}
+                          title="Edit"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -239,6 +314,44 @@ export default function DocumentsPage() {
             <QrDialogContent doc={qrDialog} />
           </DialogContent>
         </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={!!editDialog} onOpenChange={() => setEditDialog(null)}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Dokumen - {editDialog?.documentNumber}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {editDialog?.values.map((v) => (
+                <div key={v.field.id} className="space-y-1">
+                  <Label className="text-sm">{v.field.fieldLabel}</Label>
+                  {v.field.fieldType === "textarea" ? (
+                    <textarea
+                      value={editValues[v.field.id] || ""}
+                      onChange={(e) => setEditValues({ ...editValues, [v.field.id]: e.target.value })}
+                      className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    />
+                  ) : (
+                    <Input
+                      type={v.field.fieldType === "number" ? "number" : "text"}
+                      value={editValues[v.field.id] || ""}
+                      onChange={(e) => setEditValues({ ...editValues, [v.field.id]: e.target.value })}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialog(null)}>
+                Batal
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={editSaving}>
+                {editSaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminShell>
   );
@@ -253,7 +366,6 @@ function QrDialogContent({ doc }: { doc: Document | null }) {
     if (doc.qrCode) {
       setQrSrc(doc.qrCode);
     } else {
-      // Generate QR client-side
       setGenerating(true);
       const url = `${window.location.origin}/verify/${doc.verificationToken}`;
       import("qrcode").then((QRCode) => {
