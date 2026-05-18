@@ -1,9 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import QRCode from "qrcode";
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-});
+const prisma = new PrismaClient();
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
