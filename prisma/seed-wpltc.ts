@@ -1,28 +1,48 @@
 import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
+import * as XLSX from "xlsx";
 
 const prisma = new PrismaClient();
 
-function generateVerificationToken(prefix: string): string {
-  const year = new Date().getFullYear();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const seq = String(Date.now()).slice(-4);
-  return `${prefix}-${year}-${seq}${random}`;
+/**
+ * Convert Excel serial number to formatted date string "DD MMMM YYYY" (Indonesian)
+ */
+function excelDateToString(serial: number): string {
+  if (!serial || serial <= 1) return "-";
+  // Excel date serial: days since 1899-12-30
+  const utcDays = Math.floor(serial - 25569);
+  const date = new Date(utcDays * 86400 * 1000);
+  const months = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+  ];
+  const day = date.getUTCDate();
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  // If year is 1970 (serial ~25569), it's likely empty/invalid
+  if (year <= 1970) return "-";
+  return `${day} ${month} ${year}`;
 }
 
 async function main() {
-  console.log("=== Importing WP LTC Certificate Data ===\n");
+  console.log("=== Importing WP LTC Certificate Data (from XLSX) ===\n");
 
-  // Read CSV file
-  const csvPath = path.join(__dirname, "..", "wpltc.csv");
-  const csvContent = fs.readFileSync(csvPath, "utf-8");
-  const lines = csvContent.trim().split("\n");
+  // Read XLSX file
+  const xlsxPath = path.join(__dirname, "..", "wpltc.xlsx");
+  if (!fs.existsSync(xlsxPath)) {
+    console.error("ERROR: wpltc.xlsx not found! Make sure the file is in the project root.");
+    process.exit(1);
+  }
 
-  // Parse header
-  const header = lines[0].split(";");
-  console.log("CSV Columns:", header);
-  console.log(`Total rows: ${lines.length - 1}\n`);
+  const workbook = XLSX.readFile(xlsxPath);
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  // Read raw values (dates as serial numbers)
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true }) as unknown[][];
+
+  const header = rows[0] as string[];
+  console.log("XLSX Columns:", header);
+  console.log(`Total rows: ${rows.length - 1}\n`);
 
   // Create/Get document type "Sertifikat LTC"
   let docType = await prisma.documentType.findUnique({
@@ -38,34 +58,10 @@ async function main() {
         prefix: "LTC",
         fields: {
           create: [
-            {
-              fieldName: "nama_peserta",
-              fieldLabel: "Nama Peserta",
-              fieldType: "text",
-              isRequired: true,
-              sortOrder: 0,
-            },
-            {
-              fieldName: "jenis_ujian",
-              fieldLabel: "Jenis Ujian",
-              fieldType: "text",
-              isRequired: true,
-              sortOrder: 1,
-            },
-            {
-              fieldName: "nilai",
-              fieldLabel: "Nilai",
-              fieldType: "number",
-              isRequired: true,
-              sortOrder: 2,
-            },
-            {
-              fieldName: "tanggal_sertifikat",
-              fieldLabel: "Tanggal Sertifikat",
-              fieldType: "text",
-              isRequired: true,
-              sortOrder: 3,
-            },
+            { fieldName: "nama_peserta", fieldLabel: "Nama Peserta", fieldType: "text", isRequired: true, sortOrder: 0 },
+            { fieldName: "jenis_ujian", fieldLabel: "Jenis Ujian", fieldType: "text", isRequired: true, sortOrder: 1 },
+            { fieldName: "nilai", fieldLabel: "Nilai", fieldType: "number", isRequired: true, sortOrder: 2 },
+            { fieldName: "tanggal_sertifikat", fieldLabel: "Tanggal Sertifikat", fieldType: "text", isRequired: true, sortOrder: 3 },
           ],
         },
       },
@@ -81,7 +77,6 @@ async function main() {
   for (const field of docType.fields) {
     fieldMap[field.fieldName] = field.id;
   }
-
   console.log("Field mapping:", fieldMap);
   console.log("\nStarting import...\n");
 
@@ -90,86 +85,84 @@ async function main() {
   let duplicates = 0;
   const errors: string[] = [];
 
-  // Process in batches of 100
-  const dataLines = lines.slice(1); // skip header
-  const batchSize = 100;
+  const dataRows = rows.slice(1); // skip header
 
-  for (let batchStart = 0; batchStart < dataLines.length; batchStart += batchSize) {
-    const batch = dataLines.slice(batchStart, batchStart + batchSize);
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i] as (string | number | undefined)[];
+    if (!row || row.length < 5) {
+      failed++;
+      continue;
+    }
 
-    for (const line of batch) {
-      if (!line.trim()) continue;
+    const nomorSertifikat = String(row[0] || "").trim();
+    const namaPeserta = String(row[1] || "").trim();
+    const jenisUjian = String(row[2] || "").trim();
+    const nilai = String(row[3] || "").trim();
+    const tanggalRaw = row[4];
 
-      const cols = line.split(";");
-      if (cols.length < 5) {
-        failed++;
-        errors.push(`Invalid row: ${line.substring(0, 50)}...`);
+    // Convert date: if number (Excel serial), convert properly
+    let tanggalSertifikat: string;
+    if (typeof tanggalRaw === "number") {
+      tanggalSertifikat = excelDateToString(tanggalRaw);
+    } else {
+      tanggalSertifikat = String(tanggalRaw || "-").trim();
+    }
+
+    if (!nomorSertifikat || !namaPeserta) {
+      failed++;
+      continue;
+    }
+
+    try {
+      const existing = await prisma.document.findUnique({
+        where: { documentNumber: nomorSertifikat },
+      });
+
+      if (existing) {
+        duplicates++;
         continue;
       }
 
-      const nomorSertifikat = cols[0].trim();
-      const namaPeserta = cols[1].trim();
-      const jenisUjian = cols[2].trim();
-      const nilai = cols[3].trim();
-      const tanggalSertifikat = cols[4].trim();
+      // Verification token: replace slashes with dashes for URL safety
+      const verificationToken = nomorSertifikat.replace(/\//g, "-");
 
-      if (!nomorSertifikat || !namaPeserta) {
-        failed++;
-        continue;
-      }
-
-      try {
-        // Check if already exists
-        const existing = await prisma.document.findUnique({
-          where: { documentNumber: nomorSertifikat },
-        });
-
-        if (existing) {
-          duplicates++;
-          continue;
-        }
-
-        // Generate verification token (use the nomor sertifikat with slashes replaced by dashes for URL safety)
-        const verificationToken = nomorSertifikat.replace(/\//g, "-");
-
-        // Create document with values
-        await prisma.document.create({
-          data: {
-            documentTypeId: docType.id,
-            documentNumber: nomorSertifikat,
-            verificationToken,
-            qrCode: null, // Will generate QR on-demand or via separate script
-            isActive: true,
-            values: {
-              create: [
-                { fieldId: fieldMap["nama_peserta"], value: namaPeserta },
-                { fieldId: fieldMap["jenis_ujian"], value: jenisUjian },
-                { fieldId: fieldMap["nilai"], value: nilai },
-                { fieldId: fieldMap["tanggal_sertifikat"], value: tanggalSertifikat },
-              ],
-            },
+      await prisma.document.create({
+        data: {
+          documentTypeId: docType.id,
+          documentNumber: nomorSertifikat,
+          verificationToken,
+          qrCode: null,
+          isActive: true,
+          values: {
+            create: [
+              { fieldId: fieldMap["nama_peserta"], value: namaPeserta },
+              { fieldId: fieldMap["jenis_ujian"], value: jenisUjian },
+              { fieldId: fieldMap["nilai"], value: nilai },
+              { fieldId: fieldMap["tanggal_sertifikat"], value: tanggalSertifikat },
+            ],
           },
-        });
+        },
+      });
 
-        success++;
-      } catch (error: unknown) {
-        failed++;
-        const msg = error instanceof Error ? error.message : "Unknown error";
-        if (errors.length < 20) {
-          errors.push(`${nomorSertifikat}: ${msg}`);
-        }
+      success++;
+    } catch (error: unknown) {
+      failed++;
+      const msg = error instanceof Error ? error.message : "Unknown error";
+      if (errors.length < 20) {
+        errors.push(`${nomorSertifikat}: ${msg}`);
       }
     }
 
-    // Progress
-    const processed = Math.min(batchStart + batchSize, dataLines.length);
-    process.stdout.write(
-      `\rProgress: ${processed}/${dataLines.length} (${success} success, ${duplicates} duplicates, ${failed} failed)`
-    );
+    // Progress every 500 rows
+    if ((i + 1) % 500 === 0 || i === dataRows.length - 1) {
+      process.stdout.write(
+        `\rProgress: ${i + 1}/${dataRows.length} (${success} success, ${duplicates} dup, ${failed} failed)`
+      );
+    }
   }
 
   console.log("\n\n=== Import Complete ===");
-  console.log(`Total processed: ${dataLines.length}`);
+  console.log(`Total processed: ${dataRows.length}`);
   console.log(`Success: ${success}`);
   console.log(`Duplicates skipped: ${duplicates}`);
   console.log(`Failed: ${failed}`);
@@ -186,7 +179,7 @@ async function main() {
       data: {
         adminId: admin.id,
         action: "DATA_MIGRATION",
-        details: `Imported WP LTC data: ${success} success, ${duplicates} duplicates, ${failed} failed from ${dataLines.length} rows`,
+        details: `Imported WP LTC XLSX: ${success} success, ${duplicates} duplicates, ${failed} failed from ${dataRows.length} rows`,
       },
     });
   }
