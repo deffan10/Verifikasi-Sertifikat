@@ -52,9 +52,9 @@ export default function BulkUploadPage() {
     const buffer = await f.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { header: 1 });
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as unknown[][];
     if (rows.length > 0) {
-      const headerRow = rows[0] as unknown[];
+      const headerRow = rows[0];
       setColumns(headerRow.filter(Boolean).map(String));
     }
   };
