@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  role         String   @default("admin") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  activityLogs ActivityLog[]
+
+  @@map("admins")
+}
+
+model DocumentType {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  slug      String   @unique @db.VarChar(100)
+  prefix    String   @db.VarChar(20)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  fields    DocumentField[]
+  documents Document[]
+
+  @@map("document_types")
+}
+
+model DocumentField {
+  id             Int          @id @default(autoincrement())
+  documentTypeId Int          @map("document_type_id")
+  fieldName      String       @db.VarChar(100) @map("field_name")
+  fieldLabel     String       @db.VarChar(150) @map("field_label")
+  fieldType      String       @default("text") @db.VarChar(50) @map("field_type")
+  isRequired     Boolean      @default(true) @map("is_required")
+  sortOrder      Int          @default(0) @map("sort_order")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  values         DocumentValue[]
+
+  @@map("document_fields")
+}
+
+model Document {
+  id                Int          @id @default(autoincrement())
+  documentTypeId    Int          @map("document_type_id")
+  documentNumber    String       @unique @db.VarChar(100) @map("document_number")
+  verificationToken String       @unique @db.VarChar(255) @map("verification_token")
+  qrCode            String?      @db.Text @map("qr_code")
+  isActive          Boolean      @default(true) @map("is_active")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  documentType      DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  values            DocumentValue[]
+
+  @@map("documents")
+}
+
+model DocumentValue {
+  id         Int           @id @default(autoincrement())
+  documentId Int           @map("document_id")
+  fieldId    Int           @map("field_id")
+  value      String        @db.Text
+
+  document   Document      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  field      DocumentField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, fieldId])
+  @@map("document_values")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  adminId   Int?     @map("admin_id")
+  action    String   @db.VarChar(100)
+  details   String?  @db.Text
+  ipAddress String?  @db.VarChar(45) @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  admin     Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@map("activity_logs")
+}
