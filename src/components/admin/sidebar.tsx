@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -25,6 +26,7 @@ const navigation = [
   { name: "Dokumen", href: "/admin/documents", icon: FileText },
   { name: "Upload Massal", href: "/admin/documents/upload", icon: Upload },
   { name: "Activity Log", href: "/admin/activity-logs", icon: Activity },
+  { name: "Pengaturan", href: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {

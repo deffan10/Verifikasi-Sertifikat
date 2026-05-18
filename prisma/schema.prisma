@@ -93,3 +93,11 @@ model ActivityLog {
 
   @@map("activity_logs")
 }
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique @db.VarChar(100)
+  value String @db.Text
+
+  @@map("settings")
+}

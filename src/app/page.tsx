@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,9 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t mt-16 py-6 text-center text-sm text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} {process.env.NEXT_PUBLIC_INSTITUTION_NAME || "Universitas"}. All rights reserved.</p>
+        <Link href="/admin/login" className="text-xs text-muted-foreground/50 hover:text-primary mt-2 inline-block">
+          Admin
+        </Link>
       </footer>
     </div>
   );

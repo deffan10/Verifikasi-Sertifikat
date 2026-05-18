@@ -15,6 +15,7 @@ import {
   Printer,
   Copy,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 
 interface VerificationResult {
@@ -36,6 +37,7 @@ export default function VerifyPage() {
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [contactUrl, setContactUrl] = useState("");
 
   useEffect(() => {
     async function verify() {
@@ -49,7 +51,17 @@ export default function VerifyPage() {
         setLoading(false);
       }
     }
+
+    async function fetchSettings() {
+      try {
+        const res = await fetch("/api/settings?key=contact_url");
+        const data = await res.json();
+        setContactUrl(data.value || "");
+      } catch {}
+    }
+
     verify();
+    fetchSettings();
   }, [token]);
 
   const handlePrint = () => window.print();
@@ -93,7 +105,7 @@ export default function VerifyPage() {
           {result?.verified ? (
             <>
               {/* Verified */}
-              <Card className="border-green-200 dark:border-green-800 shadow-lg">
+              <Card className="border-green-200 dark:border-green-800 shadow-lg" id="verification-result">
                 <CardHeader className="bg-green-50 dark:bg-green-900/20 rounded-t-xl">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="h-10 w-10 text-green-600" />
@@ -117,24 +129,6 @@ export default function VerifyPage() {
                       <p className="text-xs text-muted-foreground">Nomor Dokumen</p>
                       <p className="font-medium">{result.document?.documentNumber}</p>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Token Verifikasi</p>
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        {result.document?.verificationToken}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Tanggal Diterbitkan</p>
-                      <p className="font-medium">
-                        {result.document?.createdAt
-                          ? new Date(result.document.createdAt).toLocaleDateString("id-ID", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })
-                          : "-"}
-                      </p>
-                    </div>
                   </div>
 
                   {result.document?.fields && result.document.fields.length > 0 && (
@@ -150,44 +144,78 @@ export default function VerifyPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Print-only footer */}
+                  <div className="hidden print:block border-t pt-4 mt-4">
+                    <p className="text-xs text-center text-gray-500">
+                      Diverifikasi pada: {new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                    <p className="text-xs text-center text-gray-500">
+                      URL Verifikasi: {typeof window !== "undefined" ? window.location.href : ""}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Actions */}
-              <div className="flex gap-2 print:hidden">
-                <Button variant="outline" size="sm" onClick={handlePrint}>
-                  <Printer className="h-4 w-4 mr-1" />
-                  Cetak
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCopyLink}>
-                  <Copy className="h-4 w-4 mr-1" />
-                  {copied ? "Tersalin!" : "Salin Link"}
-                </Button>
+              {/* Actions - centered */}
+              <div className="flex flex-col items-center gap-3 print:hidden">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handlePrint}>
+                    <Printer className="h-4 w-4 mr-1" />
+                    Cetak
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                    <Copy className="h-4 w-4 mr-1" />
+                    {copied ? "Tersalin!" : "Salin Link"}
+                  </Button>
+                </div>
+
+                {contactUrl && (
+                  <a href={contactUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="secondary" size="sm">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Butuh verifikasi resmi melalui surat? Silahkan hubungi kami
+                    </Button>
+                  </a>
+                )}
               </div>
             </>
           ) : (
             /* Not Verified */
-            <Card className="border-red-200 dark:border-red-800 shadow-lg">
-              <CardHeader className="bg-red-50 dark:bg-red-900/20 rounded-t-xl">
-                <div className="flex items-center gap-3">
-                  <XCircle className="h-10 w-10 text-red-600" />
-                  <div>
-                    <CardTitle className="text-red-700 dark:text-red-400 text-xl">
-                      Dokumen Tidak Ditemukan
-                    </CardTitle>
-                    <p className="text-sm text-red-600 dark:text-red-500">
-                      Dokumen dengan nomor/token tersebut tidak terdaftar dalam sistem
-                    </p>
+            <>
+              <Card className="border-red-200 dark:border-red-800 shadow-lg">
+                <CardHeader className="bg-red-50 dark:bg-red-900/20 rounded-t-xl">
+                  <div className="flex items-center gap-3">
+                    <XCircle className="h-10 w-10 text-red-600" />
+                    <div>
+                      <CardTitle className="text-red-700 dark:text-red-400 text-xl">
+                        Dokumen Tidak Ditemukan
+                      </CardTitle>
+                      <p className="text-sm text-red-600 dark:text-red-500">
+                        Dokumen dengan nomor/token tersebut tidak terdaftar dalam sistem
+                      </p>
+                    </div>
                   </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground">
+                    Pastikan nomor dokumen atau token verifikasi yang Anda masukkan sudah benar.
+                    Jika Anda yakin dokumen ini valid, silakan hubungi pihak yang menerbitkan dokumen.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {contactUrl && (
+                <div className="flex justify-center print:hidden">
+                  <a href={contactUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="secondary" size="sm">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Hubungi Kami
+                    </Button>
+                  </a>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">
-                  Pastikan nomor dokumen atau token verifikasi yang Anda masukkan sudah benar.
-                  Jika Anda yakin dokumen ini valid, silakan hubungi pihak yang menerbitkan dokumen.
-                </p>
-              </CardContent>
-            </Card>
+              )}
+            </>
           )}
         </div>
       </main>

@@ -12,9 +12,11 @@ export const config = {
     "/admin/document-types/:path*",
     "/admin/documents/:path*",
     "/admin/activity-logs/:path*",
+    "/admin/settings/:path*",
     "/api/document-types/:path*",
     "/api/documents/:path*",
     "/api/stats/:path*",
     "/api/activity-logs/:path*",
+    "/api/admin/:path*",
   ],
 };

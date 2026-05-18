@@ -105,6 +105,19 @@ async function main() {
   console.log("  Username: admin");
   console.log("  Password: admin123");
   console.log("\nPlease change the password after first login!");
+
+  // Create default settings
+  await prisma.setting.upsert({
+    where: { key: "contact_url" },
+    update: {},
+    create: { key: "contact_url", value: "" },
+  });
+  await prisma.setting.upsert({
+    where: { key: "logo_url" },
+    update: {},
+    create: { key: "logo_url", value: "" },
+  });
+  console.log("Default settings created.");
 }
 
 main()
