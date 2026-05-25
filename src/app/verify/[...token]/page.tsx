@@ -218,13 +218,15 @@ export default function VerifyPage() {
                   </div>
                 )}
 
-                {contactUrl && (
-                  <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="secondary" size="sm">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Butuh verifikasi resmi melalui surat? Silahkan hubungi kami
-                    </Button>
-                  </a>
+                {contactUrl && contactUrl.startsWith("http") && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.open(contactUrl, "_blank", "noopener,noreferrer")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Butuh verifikasi resmi melalui surat? Silahkan hubungi kami
+                  </Button>
                 )}
               </div>
             </>
@@ -253,14 +255,16 @@ export default function VerifyPage() {
                 </CardContent>
               </Card>
 
-              {contactUrl && (
+              {contactUrl && contactUrl.startsWith("http") && (
                 <div className="flex justify-center print:hidden">
-                  <a href={contactUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="secondary" size="sm">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Hubungi Kami
-                    </Button>
-                  </a>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.open(contactUrl, "_blank", "noopener,noreferrer")}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-1" />
+                    Hubungi Kami
+                  </Button>
                 </div>
               )}
             </>
