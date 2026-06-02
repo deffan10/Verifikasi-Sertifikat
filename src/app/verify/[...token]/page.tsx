@@ -128,14 +128,17 @@ export default function VerifyPage() {
               {/* Verified */}
               <Card className="border-green-200 dark:border-green-800 shadow-lg" id="verification-result">
                 <CardHeader className="bg-green-50 dark:bg-green-900/20 rounded-t-xl">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 className="h-10 w-10 text-green-600" />
-                    <div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="h-10 w-10 text-green-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
                       <CardTitle className="text-green-700 dark:text-green-400 text-xl">
                         Dokumen Terverifikasi
                       </CardTitle>
-                      <p className="text-sm text-green-600 dark:text-green-500">
+                      <p className="text-sm text-green-600 dark:text-green-500 font-medium">
                         Dokumen ini valid dan terdaftar dalam sistem
+                      </p>
+                      <p className="text-sm text-green-600/90 dark:text-green-500/90 leading-relaxed pt-2 border-t border-green-200/50 dark:border-green-800/50 mt-2">
+                        Peserta tersebut betul telah mengikuti Uji Kompetensi Bahasa Inggris ETP-FL/ETP-IC dengan LKP Language Training Center, sebagaimana bukti fisik berupa sertifikat yang diberikan agar dimanfaatkan dengan sebaik-baiknya untuk kebutuhan akademik dan dunia kerja
                       </p>
                     </div>
                   </div>
