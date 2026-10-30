@@ -3,13 +3,13 @@ module.exports = {
     {
       name: "certify-ltc",
       script: "node_modules/.bin/next",
-      args: "start -p 3001",
+      args: "start -p 3021",
       cwd: "/home/htdocs/certify-ltc",
       instances: 1,
       exec_mode: "fork",
       env: {
         NODE_ENV: "production",
-        PORT: 3001,
+        PORT: 3021,
       },
       // Logging
       error_file: "/var/log/pm2/certify-ltc-error.log",

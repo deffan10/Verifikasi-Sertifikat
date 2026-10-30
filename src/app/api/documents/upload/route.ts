@@ -41,6 +41,16 @@ function convertCellValue(raw: string | number | undefined): string {
   return String(raw).trim();
 }
 
+function getCellValue(row: UploadRow, col?: string): string {
+  if (!col) return "";
+  if (row[col] !== undefined && row[col] !== null) return convertCellValue(row[col]);
+  const trimmed = col.trim();
+  if (row[trimmed] !== undefined && row[trimmed] !== null) return convertCellValue(row[trimmed]);
+  const match = Object.keys(row).find(k => k.trim().toLowerCase() === trimmed.toLowerCase());
+  if (match && row[match] !== undefined && row[match] !== null) return convertCellValue(row[match]);
+  return "";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
       try {
         // Get document number from mapping
         const docNumberCol = columnMapping["documentNumber"];
-        const documentNumber = convertCellValue(row[docNumberCol]);
+        const documentNumber = getCellValue(row, docNumberCol);
 
         if (!documentNumber) {
           results.failed++;
@@ -116,7 +126,7 @@ export async function POST(request: NextRequest) {
         let hasError = false;
         for (const field of requiredFields) {
           const col = columnMapping[field.fieldName];
-          const value = col ? convertCellValue(row[col]) : "";
+          const value = getCellValue(row, col);
           if (!value) {
             results.failed++;
             results.errors.push({ row: i + 2, reason: `Required field "${field.fieldLabel}" is empty` });
@@ -135,7 +145,7 @@ export async function POST(request: NextRequest) {
         const values = docType.fields
           .map((field: { id: number; fieldName: string }) => {
             const col = columnMapping[field.fieldName];
-            const value = col ? convertCellValue(row[col]) : "";
+            const value = getCellValue(row, col);
             return { fieldId: field.id, value };
           })
           .filter((v: { fieldId: number; value: string }) => v.value);

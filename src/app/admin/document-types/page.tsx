@@ -85,7 +85,7 @@ export default function DocumentTypesPage() {
     setPrefix(type.prefix);
     setFields(
       type.fields.map((f) => ({
-        fieldName: f.fieldName,
+        id: f.id, fieldName: f.fieldName,
         fieldLabel: f.fieldLabel,
         fieldType: f.fieldType,
         isRequired: f.isRequired,

@@ -48,20 +48,55 @@ export async function PUT(
       },
     });
 
-    // Update fields if provided
+    // Update fields if provided safely without wiping document values
     if (fields && Array.isArray(fields)) {
-      // Delete existing fields and recreate
-      await prisma.documentField.deleteMany({ where: { documentTypeId: parseInt(id) } });
-      await prisma.documentField.createMany({
-        data: fields.map((f: { fieldName: string; fieldLabel: string; fieldType?: string; isRequired?: boolean }, i: number) => ({
-          documentTypeId: parseInt(id),
-          fieldName: f.fieldName,
-          fieldLabel: f.fieldLabel,
-          fieldType: f.fieldType || "text",
-          isRequired: f.isRequired !== false,
-          sortOrder: i,
-        })),
+      const existingFields = await prisma.documentField.findMany({
+        where: { documentTypeId: parseInt(id) },
       });
+      const existingById = new Map(existingFields.map((f) => [f.id, f]));
+      const existingByName = new Map(existingFields.map((f) => [f.fieldName, f]));
+
+      const inputIds = new Set(fields.filter((f: { id?: number }) => f.id).map((f: { id?: number }) => f.id));
+      const inputNames = new Set(fields.map((f: { fieldName: string }) => f.fieldName));
+
+      // Only delete fields that are removed from the input AND have no document values
+      for (const ef of existingFields) {
+        if (!inputIds.has(ef.id) && !inputNames.has(ef.fieldName)) {
+          const count = await prisma.documentValue.count({ where: { fieldId: ef.id } });
+          if (count === 0) {
+            await prisma.documentField.delete({ where: { id: ef.id } });
+          }
+        }
+      }
+
+      // Upsert/update fields preserving existing IDs
+      for (let i = 0; i < fields.length; i++) {
+        const f = fields[i];
+        const existing = (f.id && existingById.get(f.id)) || existingByName.get(f.fieldName);
+        if (existing) {
+          await prisma.documentField.update({
+            where: { id: existing.id },
+            data: {
+              ...(f.fieldName && { fieldName: f.fieldName }),
+              fieldLabel: f.fieldLabel,
+              fieldType: f.fieldType || "text",
+              isRequired: f.isRequired !== false,
+              sortOrder: i,
+            },
+          });
+        } else {
+          await prisma.documentField.create({
+            data: {
+              documentTypeId: parseInt(id),
+              fieldName: f.fieldName,
+              fieldLabel: f.fieldLabel,
+              fieldType: f.fieldType || "text",
+              isRequired: f.isRequired !== false,
+              sortOrder: i,
+            },
+          });
+        }
+      }
     }
 
     const updated = await prisma.documentType.findUnique({
