@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, prefix, fields } = body;
+    const { name, prefix, programName, fields } = body;
 
     if (!name || !prefix) {
       return NextResponse.json({ error: "Name and prefix are required" }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
         name,
         slug,
         prefix,
+        programName: programName || null,
         fields: fields?.length
           ? {
               create: fields.map((f: { fieldName: string; fieldLabel: string; fieldType?: string; isRequired?: boolean }, i: number) => ({

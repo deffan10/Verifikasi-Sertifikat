@@ -38,6 +38,7 @@ interface DocumentType {
   name: string;
   slug: string;
   prefix: string;
+  programName?: string | null;
   isActive: boolean;
   fields: DocumentField[];
   _count?: { documents: number };
@@ -53,6 +54,7 @@ export default function DocumentTypesPage() {
   // Form state
   const [name, setName] = useState("");
   const [prefix, setPrefix] = useState("");
+  const [programName, setProgramName] = useState("");
   const [fields, setFields] = useState<DocumentField[]>([]);
 
   useEffect(() => {
@@ -75,6 +77,7 @@ export default function DocumentTypesPage() {
     setEditing(null);
     setName("");
     setPrefix("");
+    setProgramName("");
     setFields([{ fieldName: "", fieldLabel: "", fieldType: "text", isRequired: true }]);
     setDialogOpen(true);
   };
@@ -83,9 +86,11 @@ export default function DocumentTypesPage() {
     setEditing(type);
     setName(type.name);
     setPrefix(type.prefix);
+    setProgramName(type.programName || "");
     setFields(
       type.fields.map((f) => ({
-        id: f.id, fieldName: f.fieldName,
+        id: f.id,
+        fieldName: f.fieldName,
         fieldLabel: f.fieldLabel,
         fieldType: f.fieldType,
         isRequired: f.isRequired,
@@ -128,7 +133,7 @@ export default function DocumentTypesPage() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, prefix, fields: validFields }),
+        body: JSON.stringify({ name, prefix, programName: programName.trim() || null, fields: validFields }),
       });
 
       if (res.ok) {
@@ -180,6 +185,7 @@ export default function DocumentTypesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nama</TableHead>
+                    <TableHead>Program / Kegiatan</TableHead>
                     <TableHead>Prefix</TableHead>
                     <TableHead>Fields</TableHead>
                     <TableHead>Dokumen</TableHead>
@@ -191,6 +197,9 @@ export default function DocumentTypesPage() {
                   {types.map((type) => (
                     <TableRow key={type.id}>
                       <TableCell className="font-medium">{type.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {type.programName || "-"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary">{type.prefix}</Badge>
                       </TableCell>
@@ -218,7 +227,7 @@ export default function DocumentTypesPage() {
                   ))}
                   {types.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         Belum ada jenis dokumen
                       </TableCell>
                     </TableRow>
@@ -256,6 +265,18 @@ export default function DocumentTypesPage() {
                     placeholder="Contoh: SERT"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Nama Program / Kegiatan (untuk Kalimat Verifikasi)</Label>
+                <Input
+                  value={programName}
+                  onChange={(e) => setProgramName(e.target.value)}
+                  placeholder="Contoh: ELTIMINDS Program (Psikotest) atau Uji Kompetensi ETP-FL"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Akan muncul di kalimat verifikasi: &quot;Peserta tersebut betul telah mengikuti [Nama Program]...&quot;. Jika dikosongkan, otomatis menggunakan Nama Jenis Dokumen.
+                </p>
               </div>
 
               <div className="space-y-3">

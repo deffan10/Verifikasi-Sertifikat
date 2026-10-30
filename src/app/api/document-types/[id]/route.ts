@@ -37,13 +37,14 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, prefix, isActive, fields } = body;
+    const { name, prefix, programName, isActive, fields } = body;
 
     const docType = await prisma.documentType.update({
       where: { id: parseInt(id) },
       data: {
         ...(name && { name }),
         ...(prefix && { prefix }),
+        ...(programName !== undefined && { programName: programName || null }),
         ...(isActive !== undefined && { isActive }),
       },
     });

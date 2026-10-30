@@ -27,6 +27,7 @@ interface VerificationResult {
   document?: {
     documentNumber: string;
     documentType: string;
+    programName?: string | null;
     verificationToken: string;
     createdAt: string;
     fields: { label: string; value: string; type: string }[];
@@ -138,7 +139,7 @@ export default function VerifyPage() {
                         Dokumen ini valid dan terdaftar dalam sistem
                       </p>
                       <p className="text-sm text-green-600/90 dark:text-green-500/90 leading-relaxed pt-2 border-t border-green-200/50 dark:border-green-800/50 mt-2">
-                        Peserta tersebut betul telah mengikuti {result.document?.documentType} dengan LKP Language Training Center, sebagaimana bukti fisik berupa sertifikat yang diberikan agar dimanfaatkan dengan sebaik-baiknya untuk kebutuhan akademik dan dunia kerja
+                        Peserta tersebut betul telah mengikuti {result.document?.programName || result.document?.documentType} dengan LKP Language Training Center, sebagaimana bukti fisik berupa sertifikat yang diberikan agar dimanfaatkan dengan sebaik-baiknya untuk kebutuhan akademik dan dunia kerja
                       </p>
                     </div>
                   </div>

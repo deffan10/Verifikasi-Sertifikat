@@ -56,6 +56,7 @@ export async function GET(
       document: {
         documentNumber: document.documentNumber,
         documentType: document.documentType.name,
+        programName: document.documentType.programName,
         verificationToken: document.verificationToken,
         createdAt: document.createdAt,
         fields: document.values.map((v: { field: { fieldLabel: string; fieldType: string }; value: string }) => ({
